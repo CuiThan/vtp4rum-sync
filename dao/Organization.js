@@ -52,7 +52,11 @@ var OrganizationSchema = new mongoose.Schema({
     criterialId : String,
     criterialName : String,
     q1Numbera : String,
-    totalEmp : Number
+    totalEmp : Number,
+    vtpLastUpdate: Date,
+    forumCategoryCode : Number,
+    forumGroupCode : Number,
+    forumParentCategoryCode : Number,
 });
 
 mongoose.model('Organization', OrganizationSchema);

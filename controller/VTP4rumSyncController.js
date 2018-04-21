@@ -214,20 +214,16 @@ var syncEmployee = function () {
         requestEmployee.perPage = 5;
         requestEmployee.resSyncTime = lastRuntime.getTime();
 
-        var currentPage = 1;
-        var totalPages = 1;
-
         requetToken(getEmployeePaging, requestEmployee);
 
 
     }).where('jobType').in([Setting.VT_SYNC_EMPLOYEE]);;
 };
 
-
 var getOrganizationPaging = function(res) {
 
     var options = {
-        uri: Setting.VT_GET_ORGANIZATION + '?parent_id='+ Setting.VT_ORG_ID + '&page=' +res.page + '&per_page=' + res.perPage,
+        uri: Setting.VT_GET_ORGANIZATION + '?syncTime=0&parent_id='+ Setting.VT_ORG_ID + '&page=' +res.page + '&per_page=' + res.perPage,
         headers: {
             'User-Agent': 'Request-Promise',
             'Authorization' : 'bearer ' + res.token
@@ -249,19 +245,105 @@ var getOrganizationPaging = function(res) {
     });
 };
 
+var processOrganization = function(res){
+    if (res.content != undefined){
+        if (res.content.length > 0){
+
+            var update = [];
+            for (let i = 0; i < res.content.length; i++) {
+                Organization.findOne({organizationId : res.content[i].organizationId}, function(error, result) {
+                    if (error) return;
+                    // if not exist then add & create account
+                    if (result == null) {
+                        var item = res.content[i];
+                        item.vtpLastupdate = new Date();
+
+                        if (item.name != null){
+                            item.vtpLastUpdate = new Date();
+
+                            Organization.create(item, function (err, org) {
+                                console.log('created', org);
+                            });
+                        }
+                    }
+                    else {
+                        var item = res.content[i];
+                        item.vtpLastupdate = new Date();
+                        Organization.update(item, function (err, org) {
+                            console.log('updated', org);
+                        });
+                    };
+                });
+            };
+        };
+    };
+};
+
+var syncOrganization = function () {
+    //get last run time
+    var lastRuntime = new Date();
+    lastRuntime.setDate(lastRuntime.getDate() - 36500);
+    var find = false;
+
+    ScheduleJob.find({}, function (err, scheduleJob) {
+        if (err) return;
+
+        if (scheduleJob !=null && scheduleJob.length > 0) {
+            lastRuntime = scheduleJob[0].lastRuntime;
+            find = true;
+        }
+        if (!find){
+            //if first run then insert to db
+            ScheduleJob.create({
+                jobType : Setting.VT_SYNC_ORG,
+                lastRuntime : new Date()
+            });
+        }
+        else {
+            //update
+            scheduleJob[0].lastRuntime = new Date();
+
+            ScheduleJob.update({_id : scheduleJob[0]._id}, scheduleJob[0],function(err,updated){
+            });
+        }
+
+        var requestOrganization = new Object();
+        requestOrganization.page = 1;
+        requestOrganization.perPage = 5;
+
+        requetToken(getOrganizationPaging, requestOrganization);
+
+
+    }).where('jobType').in([Setting.VT_SYNC_ORG]);;
+};
+
+var syncForumGroup = function () {
+    Organization.find({orgParentId : Setting.VT_ORG_ID}, function(error, result) {
+        if (error) return;
+        // if not exist then add & create account
+        if (result != null) {
+            for (let i = 0; i < result.length; i++) {
+                //check group exists?
+                //if not exists then create new group
+
+                //update data mapping
+
+                //create category
+
+            };
+        };
+    });
+};
+
 var VTP4rumSync = {
     requetToken : requetToken,
     getEmployeePaging : getEmployeePaging,
     processEmployee : processEmployee,
-    syncEmployee :syncEmployee
+    syncEmployee :syncEmployee,
+    syncOrganization: syncOrganization,
+    processOrganization : processOrganization,
+    getOrganizationPaging : getOrganizationPaging,
+    syncForumGroup : syncForumGroup,
 };
-
-
-
-
-
-
-
-
 
 module.exports = VTP4rumSync;
