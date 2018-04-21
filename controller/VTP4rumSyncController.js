@@ -317,15 +317,35 @@ var syncOrganization = function () {
     }).where('jobType').in([Setting.VT_SYNC_ORG]);;
 };
 
-var syncForumGroup = function () {
-    Organization.find({orgParentId : Setting.VT_ORG_ID}, function(error, result) {
+var syncForumGroup = function (res) {
+    Organization.find({orgParentId : res.orgParentId}, function(error, result) {
         if (error) return;
         // if not exist then add & create account
         if (result != null) {
             for (let i = 0; i < result.length; i++) {
                 //check group exists?
                 //if not exists then create new group
-
+                var rs = result[i].name.toLowerCase().replace(/  +/gi, ' ' ).replace(/ /gi,'-');
+                requestPromise({
+                    url: Setting.FORUM_GET_GROUP + result[i].name.replace( /\s\s+/gi, ' ' ).replace(' '/gi,'-'),
+                    method: "GET",
+                    headers: {
+                        'User-Agent': 'Request-Promise',
+                        'Authorization' : Setting.FORUM_TOKEN
+                    },
+                    json: true,   // <--Very important!!!
+                    body : {
+                        _uid : 1
+                    }
+                })
+                    .then(function (repos) {
+                        if (repos != undefined && repos != null){
+                            console.log(repos);
+                        };
+                    })
+                    .catch(function (err) {
+                        console.log(err);
+                    });
                 //update data mapping
 
                 //create category
