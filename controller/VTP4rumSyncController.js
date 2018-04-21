@@ -325,9 +325,9 @@ var syncForumGroup = function (res) {
             for (let i = 0; i < result.length; i++) {
                 //check group exists?
                 //if not exists then create new group
-                var rs = result[i].name.toLowerCase().replace(/  +/gi, ' ' ).replace(/ /gi,'-');
+                var rs = result[i].name.toLowerCase().replace(/  +/g, ' ').replace(/ /gi,'-');
                 requestPromise({
-                    url: Setting.FORUM_GET_GROUP + result[i].name.replace( /\s\s+/gi, ' ' ).replace(' '/gi,'-'),
+                    url: Setting.FORUM_GET_GROUP + rs,
                     method: "GET",
                     headers: {
                         'User-Agent': 'Request-Promise',
@@ -344,7 +344,11 @@ var syncForumGroup = function (res) {
                         };
                     })
                     .catch(function (err) {
-                        console.log(err);
+                        if (err.statusCode == 400){
+                            //create new
+
+                        };
+
                     });
                 //update data mapping
 
