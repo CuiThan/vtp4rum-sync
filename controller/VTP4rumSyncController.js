@@ -257,6 +257,7 @@ var processOrganization = function(res){
                     if (result == null) {
                         var item = res.content[i];
                         item.vtpLastupdate = new Date();
+                        item.oldName = item.name;
 
                         if (item.name != null){
                             item.vtpLastUpdate = new Date();
@@ -269,6 +270,8 @@ var processOrganization = function(res){
                     else {
                         var item = res.content[i];
                         item.vtpLastupdate = new Date();
+                        item.oldName = result.name;
+
                         Organization.update(item, function (err, org) {
                             console.log('updated', org);
                         });
@@ -325,7 +328,7 @@ var syncForumGroup = function (res) {
             for (let i = 0; i < result.length; i++) {
                 //check group exists?
                 //if not exists then create new group
-                var rs = result[i].name.toLowerCase().replace(/  +/g, ' ').replace(/ /gi,'-');
+                var rs = result[i].oldName.toLowerCase().replace(/  +/g, ' ').replace(/ /gi,'-');
                 requestPromise({
                     url: Setting.FORUM_GET_GROUP + rs,
                     method: "GET",
@@ -337,15 +340,32 @@ var syncForumGroup = function (res) {
                     body : {
                         _uid : 1
                     }
-                })
-                    .then(function (repos) {
+                }).then(function (repos) {
                         if (repos != undefined && repos != null){
                             console.log(repos);
                         };
-                    })
-                    .catch(function (err) {
-                        if (err.statusCode == 400){
-                            //create new
+                    }).catch(function (err) {
+                        if (err.statusCode == 404){
+                            //create new group
+
+                            requestPromise({
+                                url: Setting.FORUM_CREATE_GROUP,
+                                method: "POST",
+                                headers: {
+                                    'User-Agent': 'Request-Promise',
+                                    'Authorization' : Setting.FORUM_TOKEN
+                                },
+                                json: true,   // <--Very important!!!
+                                body : {
+                                    _uid : 1,
+                                    name: result[i].name
+                                }
+                            }).then(function (repos) {
+                                //check category
+
+                            }).catch(function (err) {
+
+                            });
 
                         };
 
@@ -356,6 +376,26 @@ var syncForumGroup = function (res) {
 
             };
         };
+    });
+};
+
+var createCategory = function (res, callback) {
+    requestPromise({
+        url: Setting.FORUM_CREATE_GROUP,
+        method: "POST",
+        headers: {
+            'User-Agent': 'Request-Promise',
+            'Authorization' : Setting.FORUM_TOKEN
+        },
+        json: true,   // <--Very important!!!
+        body : {
+            _uid : 1,
+            name: result[i].name
+        }
+    }).then(function (repos) {
+        
+    }).catch(function (err) {
+
     });
 };
 

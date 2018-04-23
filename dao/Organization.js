@@ -7,6 +7,7 @@ var OrganizationSchema = new mongoose.Schema({
     enterpriseTypeId : String,
     code : String,
     name : String,
+    oldName : String,
     englishName : String,
     abbreviation : String,
     establishDecideNum : String,

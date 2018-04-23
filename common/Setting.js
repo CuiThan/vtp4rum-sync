@@ -16,4 +16,5 @@ module.exports = {
     FORUM_TOKEN                 : 'Bearer b7934739-f66a-4527-b0ba-2156bf16f044',
     FORUM_GET_CATEGORY          : 'http://125.212.238.119:4567/api/user/',
     FORUM_GET_GROUP             : 'http://125.212.238.119:4567/api/groups/',
+    FORUM_CREATE_GROUP          : 'http://125.212.238.119:4567/api/v2/groups/',
 }

@@ -6,6 +6,8 @@ var VTP4rumSync = require('./controller/VTP4rumSyncController')
 var server = app.listen(port, function() {
     console.log('Express server listening on port ' + port);
 });
+
+//VTP4rumSync.syncOrganization();
 var res = new Object();
 res.orgParentId = 196961;
 VTP4rumSync.syncForumGroup(res);
