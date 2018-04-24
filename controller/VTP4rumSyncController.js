@@ -393,7 +393,7 @@ var createCategory = function (res, callback) {
             name: result[i].name
         }
     }).then(function (repos) {
-        
+
     }).catch(function (err) {
 
     });
