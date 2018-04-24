@@ -17,4 +17,5 @@ module.exports = {
     FORUM_GET_CATEGORY          : 'http://125.212.238.119:4567/api/user/',
     FORUM_GET_GROUP             : 'http://125.212.238.119:4567/api/groups/',
     FORUM_CREATE_GROUP          : 'http://125.212.238.119:4567/api/v2/groups/',
+    FORUM_CREATE_CATEGORY       : 'http://125.212.238.119:4567/api/v2/categories/',
 }
