@@ -393,7 +393,44 @@ var createCategory = function (res, callback) {
             name: result[i].name
         }
     }).then(function (repos) {
-        
+        requestPromise({
+            url: Setting.FORUM_CREATE_CATEGORY,
+            method: "POST",
+            headers: {
+                'User-Agent': 'Request-Promise',
+                'Authorization' : Setting.FORUM_TOKEN
+            },
+            json: true,   // <--Very important!!!
+            body : {
+                _uid : 1,
+                name: res.name,
+                parentCid : res.parentCid
+            }
+        }).then(function (repos) {
+            // create privileges
+            var cId = repos.cId;
+            requestPromise({
+                url: Setting.FORUM_CREATE_CATEGORY + cId + '/privileges',
+                method: "PUT",
+                headers: {
+                    'User-Agent': 'Request-Promise',
+                    'Authorization' : Setting.FORUM_TOKEN
+                },
+                json: true,   // <--Very important!!!
+                body : {
+                    _uid : 1,
+                    name: res.name,
+                    privileges  : [],
+                    groups: []
+                }
+            }).then(function (repos) {
+
+            }).catch(function (err) {
+                console.log(err);
+            });
+        }).catch(function (err) {
+
+        });
     }).catch(function (err) {
 
     });
