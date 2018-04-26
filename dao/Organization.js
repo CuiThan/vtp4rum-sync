@@ -56,7 +56,6 @@ var OrganizationSchema = new mongoose.Schema({
     totalEmp : Number,
     vtpLastUpdate: Date,
     forumCategoryCode : Number,
-    forumGroupCode : Number,
     forumParentCategoryCode : Number,
 });
 

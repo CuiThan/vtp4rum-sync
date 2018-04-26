@@ -272,7 +272,7 @@ var processOrganization = function(res){
                         item.vtpLastupdate = new Date();
                         item.oldName = result.name;
 
-                        Organization.update(item, function (err, org) {
+                        Organization.update({organizationId : item.organizationId}, item, function (err, org) {
                             console.log('updated', org);
                         });
                     };
@@ -320,15 +320,21 @@ var syncOrganization = function () {
     }).where('jobType').in([Setting.VT_SYNC_ORG]);;
 };
 
-var syncForumGroup = function (res) {
-    Organization.find({orgParentId : res.orgParentId}, function(error, result) {
+var syncForumGroup = function (req) {
+    Organization.find({orgParentId : req.orgParentId}, function(error, result) {
         if (error) return;
         // if not exist then add & create account
         if (result != null) {
             for (let i = 0; i < result.length; i++) {
                 //check group exists?
                 //if not exists then create new group
-                var rs = result[i].oldName.toLowerCase().replace(/  +/g, ' ').replace(/ /gi,'-');
+                var rs = result[i].organizationId + '-';
+
+                if (result[i].oldName != null) {
+                    rs += result[i].oldName.toLowerCase().replace(/  +/g, ' ').replace(/ /gi,'-').replace(/-+/gi,'-');
+                }
+
+                rs = encodeURI(rs);
                 requestPromise({
                     url: Setting.FORUM_GET_GROUP + rs,
                     method: "GET",
@@ -341,45 +347,141 @@ var syncForumGroup = function (res) {
                         _uid : 1
                     }
                 }).then(function (repos) {
-                        if (repos != undefined && repos != null){
-                            console.log(repos);
-                        };
-                    }).catch(function (err) {
-                        if (err.statusCode == 404){
-                            //create new group
+                    if (repos != undefined && repos != null){
+                        // exists group
+                        if (result[i].forumCategoryCode == undefined || result[i].forumCategoryCode == 0 || result[i].forumCategoryCode == null ){
+                            if (result[i].orgParentId != null &&  result[i].orgParentId != 0){
+                                Organization.findOne({organizationId : result[i].orgParentId}, function(err, rs){
+                                    if (rs != null){
+                                        createCategory(result[i], rs.forumCategoryCode);
+                                    }
+                                    else {
+                                        createCategory(result[i], 0);
+                                    }
+                                });
+                            }
+                            else {
+                                createCategory(result[i], 0);
+                            }
+                        }
+                        else {
+                            var reqS = new Object();
+                            reqS.orgParentId = req.organizationId;
+                            syncForumGroup(reqS);
+                        }
 
-                            requestPromise({
-                                url: Setting.FORUM_CREATE_GROUP,
-                                method: "POST",
-                                headers: {
-                                    'User-Agent': 'Request-Promise',
-                                    'Authorization' : Setting.FORUM_TOKEN
-                                },
-                                json: true,   // <--Very important!!!
-                                body : {
-                                    _uid : 1,
-                                    name: result[i].name
-                                }
-                            }).then(function (repos) {
-                                //check category
-
-                            }).catch(function (err) {
-
-                            });
-
-                        };
-
-                    });
-                //update data mapping
-
-                //create category
-
+                    };
+                }).catch(function (err) {
+                    if (err.statusCode == 404){
+                        //create new group
+                        createGroup(result[i]);
+                    };
+                });
             };
         };
     });
 };
 
-var createCategory = function (res, callback) {
+var deletePrivileges = function (req) {
+    requestPromise({
+        url: 'http://125.212.238.119:4567/api/v2/categories/712/privileges',
+        method: "GET",
+        headers: {
+            'User-Agent': 'Request-Promise',
+            'Authorization' : Setting.FORUM_TOKEN
+        },
+        json: true,   // <--Very important!!!
+        body : {
+            _uid : 1,
+        }
+    }).then(function (repos) {
+        console.log(repos);
+    }).catch(function (err) {
+        console.log(err);
+    });
+    /*requestPromise({
+        url: Setting.FORUM_CREATE_CATEGORY + req.forumCategoryCode + '/privileges',
+        method: "DELETE",
+        headers: {
+            'User-Agent': 'Request-Promise',
+            'Authorization' : Setting.FORUM_TOKEN
+        },
+        json: true,   // <--Very important!!!
+        body : {
+            _uid : 1,
+            privileges  : ['read','write'],
+            groups: ['registered-users', 'guests', 'spiders']
+        }
+    }).then(function (repos) {
+        createPrivileges(req);
+    }).catch(function (err) {
+        console.log(err);
+    });*/
+};
+
+var createPrivileges = function (req) {
+    var rs = req.organizationId + '-';
+
+    if (rs.name != null) {
+        rs += req.name.toLowerCase().replace(/  +/g, ' ').replace(/ /gi,'-').replace(/-+/gi,'-');
+    }
+
+    requestPromise({
+        url: Setting.FORUM_CREATE_CATEGORY + req.forumCategoryCode + '/privileges',
+        method: "PUT",
+        headers: {
+            'User-Agent': 'Request-Promise',
+            'Authorization' : Setting.FORUM_TOKEN
+        },
+        json: true,   // <--Very important!!!
+        body : {
+            _uid : 1,
+            privileges  : ['read','write'],
+            groups: [rs]
+        }
+    }).then(function (repos) {
+        console.log(repos);
+    }).catch(function (err) {
+        console.log(err);
+    });
+};
+
+var createCategory = function (req, forumParentCategoryCode, callback) {
+    if (req.forumCategoryCode != undefined && req.forumCategoryCode != 0) {
+        return;
+    };
+
+    requestPromise({
+        url: Setting.FORUM_CREATE_CATEGORY,
+        method: "POST",
+        headers: {
+            'User-Agent': 'Request-Promise',
+            'Authorization' : Setting.FORUM_TOKEN
+        },
+        json: true,   // <--Very important!!!
+        body : {
+            _uid : 1,
+            name: req.name,
+            parentCid : forumParentCategoryCode
+        }
+    }).then(function (repos) {
+        //update forumCategoryCode, forumParentCategoryCode
+        if (repos.code = 'ok') {
+            req.forumCategoryCode = repos.payload.cid;
+            req.forumParentCategoryCode = forumParentCategoryCode;
+            Organization.update( {organizationId : req.organizationId}, req, function (err, org) {
+                var res = new Object();
+                res.orgParentId = req.organizationId;
+                syncForumGroup(res);
+            });
+        }
+    }).catch(function (err) {
+        console.log(err);
+    });
+};
+
+var createGroup = function (req) {
+    var groupName = req.organizationId + '-' + req.name;
     requestPromise({
         url: Setting.FORUM_CREATE_GROUP,
         method: "POST",
@@ -390,49 +492,39 @@ var createCategory = function (res, callback) {
         json: true,   // <--Very important!!!
         body : {
             _uid : 1,
-            name: result[i].name
+            name: groupName
         }
     }).then(function (repos) {
-        requestPromise({
-            url: Setting.FORUM_CREATE_CATEGORY,
-            method: "POST",
-            headers: {
-                'User-Agent': 'Request-Promise',
-                'Authorization' : Setting.FORUM_TOKEN
-            },
-            json: true,   // <--Very important!!!
-            body : {
-                _uid : 1,
-                name: res.name,
-                parentCid : res.parentCid
+        //create category
+        if (repos.code == 'ok') {
+            if (req.orgParentId != null && req.orgParentId != 0) {
+                Organization.findOne({organizationId: req.orgParentId}, function (error, result) {
+                    if (result != null && result.forumCategoryCode != undefined && result.forumCategoryCode != null && result.forumCategoryCode != 0) {
+                        createCategory(req, result.forumCategoryCode);
+                    }
+                    else {
+                        createCategory(req, 0);
+                    }
+                });
             }
-        }).then(function (repos) {
-            // create privileges
-            var cId = repos.cId;
-            requestPromise({
-                url: Setting.FORUM_CREATE_CATEGORY + cId + '/privileges',
-                method: "PUT",
-                headers: {
-                    'User-Agent': 'Request-Promise',
-                    'Authorization' : Setting.FORUM_TOKEN
-                },
-                json: true,   // <--Very important!!!
-                body : {
-                    _uid : 1,
-                    name: res.name,
-                    privileges  : [],
-                    groups: []
-                }
-            }).then(function (repos) {
-
-            }).catch(function (err) {
-                console.log(err);
-            });
-        }).catch(function (err) {
-
-        });
+            else {
+                createCategory(req, 0);
+            }
+        }
     }).catch(function (err) {
+        console.log(err);
+    });
+};
 
+var syncPrivileges = function () {
+    Organization.find({}, function(error, result) {
+        if (result != null && result.length > 0) {
+            for (let i = 0; i < result.length; i++) {
+                if (result[i].forumCategoryCode != undefined && result[i].forumCategoryCode != null && result[i].forumCategoryCode != 0) {
+                    deletePrivileges(result[i])
+                }
+            };
+        };
     });
 };
 
@@ -445,6 +537,7 @@ var VTP4rumSync = {
     processOrganization : processOrganization,
     getOrganizationPaging : getOrganizationPaging,
     syncForumGroup : syncForumGroup,
+    syncPrivileges : syncPrivileges,
 };
 
 module.exports = VTP4rumSync;

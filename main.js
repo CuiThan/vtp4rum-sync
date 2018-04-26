@@ -7,10 +7,11 @@ var server = app.listen(port, function() {
     console.log('Express server listening on port ' + port);
 });
 
+VTP4rumSync.syncPrivileges();
 //VTP4rumSync.syncOrganization();
-var res = new Object();
+/*var res = new Object();
 res.orgParentId = 196961;
-VTP4rumSync.syncForumGroup(res);
+VTP4rumSync.syncForumGroup(res);*/
 //new CronJob('* * * * * *', function() {
 //    console.log('Hello puppies!')
 //}, null, true, 'America/Los_Angeles');
